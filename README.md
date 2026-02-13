@@ -18,4 +18,4 @@ Everything runs in your browser. No data is sent anywhere.
 
 ## Run locally
 
-Just open `index.html` in your browser. No install needed.
+Download or clone this repo and open `index.html` in your browser.
