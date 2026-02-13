@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Subscriptions to OPML Converter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e1e1e1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .subtitle {
+            color: #aaa;
+            margin-bottom: 2rem;
+            text-align: center;
+            max-width: 500px;
+            line-height: 1.5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #444;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 1.5rem;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #ff4444;
+            background: rgba(255, 68, 68, 0.05);
+        }
+
+        .drop-zone p {
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .drop-zone .hint {
+            color: #777;
+            font-size: 0.85rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .folder-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #ccc;
+            font-size: 0.9rem;
+        }
+
+        .folder-input {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #1a1a1a;
+            color: #e1e1e1;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .folder-input:focus {
+            outline: none;
+            border-color: #ff4444;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .convert-btn {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            background: #e03b3b;
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .status.success {
+            display: block;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid #22c55e;
+            color: #22c55e;
+        }
+
+        .status.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+        }
+
+        .preview {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid #333;
+            display: none;
+        }
+
+        .preview h3 {
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+            color: #ccc;
+        }
+
+        .preview ul {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .preview ul li {
+            padding: 0.25rem 0;
+        }
+
+        .privacy-note {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+            max-width: 400px;
+        }
+
+        .how-to {
+            margin-top: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .how-to h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .how-to ol {
+            padding-left: 1.5rem;
+            line-height: 1.8;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .how-to a {
+            color: #ff4444;
+            text-decoration: none;
+        }
+
+        .how-to a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>YouTube Subs to OPML</h1>
+    <p class="subtitle">Convert your YouTube Takeout subscriptions CSV into an OPML file you can import into RSS readers like FeedFlow.</p>
+
+    <div class="container">
+        <div class="drop-zone" id="dropZone">
+            <p>Drop your subscriptions CSV here</p>
+            <span class="hint">or click to browse</span>
+            <input type="file" id="fileInput" accept=".csv">
+        </div>
+
+        <label class="folder-label" for="folderName">OPML folder name (optional):</label>
+        <input class="folder-input" type="text" id="folderName" placeholder="YouTube" value="YouTube">
+
+        <button class="convert-btn" id="convertBtn" disabled>Convert & Download OPML</button>
+
+        <div class="status" id="status"></div>
+
+        <div class="preview" id="preview">
+            <h3 id="previewTitle"></h3>
+            <ul id="previewList"></ul>
+        </div>
+    </div>
+
+    <p class="privacy-note">Everything runs in your browser. Your data never leaves your device.</p>
+
+    <div class="how-to">
+        <h2>How to get your subscriptions file</h2>
+        <ol>
+            <li>Go to <a href="https://takeout.google.com/" target="_blank" rel="noopener">Google Takeout</a></li>
+            <li>Click "Deselect all", then scroll down and select only <strong>YouTube and YouTube Music</strong></li>
+            <li>Click "All YouTube data included", deselect everything except <strong>subscriptions</strong></li>
+            <li>Click OK, then "Next step", then "Create export"</li>
+            <li>Download the export zip and extract the <strong>subscriptions.csv</strong> file</li>
+            <li>Upload it here!</li>
+        </ol>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById("dropZone");
+        const fileInput = document.getElementById("fileInput");
+        const convertBtn = document.getElementById("convertBtn");
+        const statusEl = document.getElementById("status");
+        const preview = document.getElementById("preview");
+        const previewTitle = document.getElementById("previewTitle");
+        const previewList = document.getElementById("previewList");
+
+        let parsedChannels = [];
+
+        dropZone.addEventListener("click", () => fileInput.click());
+
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.classList.remove("dragover");
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.classList.remove("dragover");
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith(".csv")) {
+                showStatus("Please select a CSV file.", "error");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    parsedChannels = parseCSV(e.target.result);
+                    if (parsedChannels.length === 0) {
+                        showStatus("No channels found in the CSV. Make sure it's a YouTube subscriptions export.", "error");
+                        return;
+                    }
+                    dropZone.querySelector("p").textContent = file.name;
+                    dropZone.querySelector(".hint").textContent = parsedChannels.length + " channels found";
+                    convertBtn.disabled = false;
+                    showPreview(parsedChannels);
+                    statusEl.style.display = "none";
+                } catch (err) {
+                    showStatus("Could not parse the CSV: " + err.message, "error");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split("\n");
+            if (lines.length < 2) return [];
+
+            const channels = [];
+            // Skip header row, parse remaining lines
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                // Split by comma - CSV fields may be simple or quoted
+                const parts = splitCSVLine(line);
+                if (parts.length < 3) continue;
+
+                const channelId = parts[0].trim();
+                const channelTitle = parts[2].trim();
+
+                if (channelId && channelTitle) {
+                    channels.push({ id: channelId, title: channelTitle });
+                }
+            }
+            return channels;
+        }
+
+        function splitCSVLine(line) {
+            const parts = [];
+            let current = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"') {
+                    inQuotes = !inQuotes;
+                } else if (ch === "," && !inQuotes) {
+                    parts.push(current);
+                    current = "";
+                } else {
+                    current += ch;
+                }
+            }
+            parts.push(current);
+            return parts;
+        }
+
+        function showPreview(channels) {
+            previewTitle.textContent = "Channels (" + channels.length + "):";
+            previewList.innerHTML = "";
+            channels.forEach((ch) => {
+                const li = document.createElement("li");
+                li.textContent = ch.title;
+                previewList.appendChild(li);
+            });
+            preview.style.display = "block";
+        }
+
+        function escapeXml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&apos;");
+        }
+
+        function buildOPML(channels, folderName) {
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            xml += '<opml version="1.0">\n';
+            xml += "  <head>\n";
+            xml += "    <title>YouTube Subscriptions</title>\n";
+            xml += "  </head>\n";
+            xml += "  <body>\n";
+
+            const useFolder = folderName && folderName.trim();
+            const indent = useFolder ? "      " : "    ";
+
+            if (useFolder) {
+                xml += '    <outline text="' + escapeXml(folderName.trim()) + '" title="' + escapeXml(folderName.trim()) + '">\n';
+            }
+
+            channels
+                .slice()
+                .sort((a, b) => a.title.localeCompare(b.title))
+                .forEach((ch) => {
+                    const feedUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=" + ch.id;
+                    const title = escapeXml(ch.title);
+                    xml += indent + '<outline type="rss" text="' + title + '" title="' + title + '" xmlUrl="' + feedUrl + '" htmlUrl="' + feedUrl + '"></outline>\n';
+                });
+
+            if (useFolder) {
+                xml += "    </outline>\n";
+            }
+
+            xml += "  </body>\n";
+            xml += "</opml>\n";
+            return xml;
+        }
+
+        convertBtn.addEventListener("click", () => {
+            if (parsedChannels.length === 0) return;
+
+            const folderName = document.getElementById("folderName").value;
+            const opml = buildOPML(parsedChannels, folderName);
+
+            const blob = new Blob([opml], { type: "text/xml" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "youtube-subscriptions.opml";
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showStatus("Downloaded youtube-subscriptions.opml with " + parsedChannels.length + " channels!", "success");
+        });
+
+        function showStatus(message, type) {
+            statusEl.textContent = message;
+            statusEl.className = "status " + type;
+        }
+    </script>
+</body>
+</html>
